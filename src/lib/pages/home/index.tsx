@@ -1,10 +1,14 @@
 import { Flex, Grid, Heading, Text } from "@chakra-ui/react";
 import { NextSeo } from "next-seo";
 
-const Home = (props: any) => {
-  const { events } = props;
+import { SportsEvent } from "lib/types/sports";
 
-  console.log(events);
+interface HomeProps {
+  events: SportsEvent[];
+}
+
+const Home = (props: HomeProps) => {
+  const { events } = props;
 
   return (
     <Flex
@@ -26,6 +30,12 @@ const Home = (props: any) => {
         <Text fontSize="xs" color="gray.500">
           Use o calendário abaixo para buscar por eventos esportivos
         </Text>
+
+        {events.map((event) => (
+          <div key={event.name}>
+            <p>{event.name}</p>
+          </div>
+        ))}
       </Grid>
     </Flex>
   );

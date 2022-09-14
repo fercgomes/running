@@ -1,15 +1,18 @@
 import { GoogleSpreadsheet } from "google-spreadsheet";
 
-import credentials from "../../../credentials.json";
-
 const doc = new GoogleSpreadsheet(
   "1cHmwZjnHtQJekXFP07W6Pa9Q5BUECkMGt3CFwDlF-Lg"
 );
 
 export async function getSportsEventsSchedule() {
   try {
-    console.info("Getting data from Sheets");
-    await doc.useServiceAccountAuth(credentials);
+    const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || "";
+    const serviceAccountPrivateKey = process.env.GOOGLE_PRIVATE_KEY || "";
+
+    await doc.useServiceAccountAuth({
+      client_email: serviceAccountEmail,
+      private_key: serviceAccountPrivateKey,
+    });
 
     await doc.loadInfo();
 
@@ -17,7 +20,6 @@ export async function getSportsEventsSchedule() {
     const rows = await sheet.getRows();
 
     return rows.map((row) => {
-      console.info(row);
       return {
         name: row.name,
         type: row.type,
@@ -30,6 +32,6 @@ export async function getSportsEventsSchedule() {
       };
     });
   } catch (error) {
-    console.log(error);
+    return null;
   }
 }
