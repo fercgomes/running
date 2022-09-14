@@ -6,7 +6,10 @@ const doc = new GoogleSpreadsheet(
 
 export async function getSportsEventsSchedule() {
   const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const serviceAccountPrivateKey = process.env.GOOGLE_PRIVATE_KEY;
+  const serviceAccountPrivateKey =
+    process.env.NODE_ENV === "production"
+      ? atob(process.env.GOOGLE_PRIVATE_KEY || "")
+      : process.env.GOOGLE_PRIVATE_KEY;
 
   if (
     serviceAccountEmail === undefined ||
