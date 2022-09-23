@@ -3,6 +3,10 @@ import {
   Flex,
   Grid,
   Heading,
+  Slider,
+  SliderFilledTrack,
+  SliderThumb,
+  SliderTrack,
   Table,
   TableContainer,
   Tbody,
@@ -11,10 +15,14 @@ import {
   Th,
   Thead,
   Tr,
+  useToast,
 } from "@chakra-ui/react";
 import { NextSeo } from "next-seo";
 
+import * as geolib from "geolib";
 import { SportsEvent } from "lib/types/sports";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 const runningTypeDict = {
   running: "Corrida",
@@ -44,16 +52,76 @@ type EventFilters = {
         start?: number;
         end?: number;
       };
+  maxDistance?: number;
 };
 
 interface HomeProps {
   events: SportsEvent[];
 }
 
-const Calendario = (props: HomeProps) => {
-  const { events } = props;
+const applyFilters = (
+  events: SportsEvent[],
+  filters: EventFilters,
+  bypassDistance?: boolean
+) => {
+  return events.filter((ev) => {
+    let predicate = true;
 
-  // const [filters, setFilters] = useState<EventFilters>({});
+    if (!bypassDistance && filters.maxDistance) {
+      if (ev.distance) {
+        const inKms = ev.distance / 1000;
+        if (inKms > filters.maxDistance) {
+          predicate = false;
+        }
+      } else {
+        predicate = false;
+      }
+    }
+
+    return predicate;
+  });
+};
+
+const Calendario = (props: HomeProps) => {
+  const { events: rawEvents } = props;
+  const toast = useToast();
+
+  const [filters, setFilters] = useState<EventFilters>({});
+  const [location, setLocation] = useState<GeolocationPosition | null>(null);
+  const [events, setEvents] = useState<SportsEvent[]>(rawEvents);
+
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLocation(position);
+          setEvents(
+            rawEvents.map((ev) => ({
+              ...ev,
+              distance:
+                ev.search_lat && ev.search_long
+                  ? geolib.getDistance(
+                      {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                      },
+                      { latitude: ev.search_lat, longitude: ev.search_long }
+                    )
+                  : undefined,
+            }))
+          );
+        },
+        (error) => {
+          toast({
+            title:
+              "Ative sua localização para mostrarmos os eventos mais próximos de você.",
+            status: "warning",
+            duration: 2000,
+          });
+        }
+      );
+    }
+  }, [toast, rawEvents]);
 
   return (
     <Flex
@@ -76,6 +144,31 @@ const Calendario = (props: HomeProps) => {
           Use o calendário abaixo para buscar por eventos esportivos
         </Text>
 
+        {/* Filter Controls */}
+        <Flex direction="row" m={4}>
+          {/* Distance in KMs */}
+          <Flex direction="column">
+            <Text marginBottom={4}>Distância até o evento</Text>
+
+            <Slider
+              defaultValue={10}
+              min={5}
+              max={4000}
+              w={200}
+              onChange={(val) => setFilters({ ...filters, maxDistance: val })}
+              marginRight={4}
+            >
+              <SliderTrack>
+                <SliderFilledTrack />
+              </SliderTrack>
+
+              <SliderThumb />
+            </Slider>
+          </Flex>
+
+          <Text>{filters.maxDistance} KMs</Text>
+        </Flex>
+
         <TableContainer marginTop={4} overflowY="scroll">
           <Table variant="simple">
             <Thead>
@@ -92,9 +185,11 @@ const Calendario = (props: HomeProps) => {
             </Thead>
 
             <Tbody>
-              {events.map((event) => (
+              {applyFilters(events, filters, !location).map((event) => (
                 <Tr key={event.name}>
-                  <Td>{event.name}</Td>
+                  <Td>
+                    <Link href={event.event_url}>{event.name}</Link>
+                  </Td>
                   <Td>{runningTypeDict[event.type]}</Td>
                   <Td>{distancesStr(event.distances)}</Td>
                   <Td>{event.confirmed_date}</Td>

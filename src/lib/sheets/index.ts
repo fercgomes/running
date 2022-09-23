@@ -40,6 +40,9 @@ export async function getSportsEventsSchedule() {
       state: row.state,
       country: row.country,
       distances: row.distances.split(","),
+      search_lat: row.search_lat ? parseFloat(row.search_lat) : null,
+      search_long: row.search_long ? parseFloat(row.search_long) : null,
+      event_url: row.event_url,
     };
   });
 }

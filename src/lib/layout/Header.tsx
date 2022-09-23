@@ -18,6 +18,10 @@ const Header = () => {
         <Link marginRight={10} href="/calendario">
           Calendário
         </Link>
+
+        <Link marginRight={10} href="/ferramentas">
+          Calculadoras
+        </Link>
       </Flex>
 
       <Box marginLeft="auto">
